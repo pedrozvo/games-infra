@@ -1,36 +1,31 @@
 ---
 - name: Desplegar Games API
   hosts: webservers
-  become: yes  # Ejecutar como administrador (sudo)
+  become: yes
 
   tasks:
-    # 1. Asegurar que Docker y Python estén instalados (requisitos)
-    - name: Instalar pip3 (necesario para el módulo docker de ansible)
+    # 1. Asegurar que docker-compose esté instalado (Evita el error "command not found")
+    - name: Instalar docker-compose
       apt:
-        name: python3-pip
+        name: docker-compose
         state: present
         update_cache: yes
 
-    - name: Instalar Docker SDK para Python
-      pip:
-        name: docker
-
-    # 2. Transferir el archivo docker-compose (Requisito Fase 2.4.c.i)
-    - name: Copiar docker-compose.yml al servidor
+    # 2. Copiar el archivo
+    - name: Copiar docker-compose.yml
       copy:
         src: ./docker-compose.yml
-        dest: /home/{{ ansible_user }}/docker-compose.yml
+        dest: "{{ ansible_env.HOME }}/docker-compose.yml"
         mode: '0644'
 
-    # 3. Descargar la última versión de tu imagen (Requisito Fase 2.4.c.ii)
-    - name: Hacer pull de la imagen más reciente
-      command: docker-compose pull
+    # 3. Descargar la imagen (Con GUION, para compatibilidad)
+    - name: Hacer pull de la imagen
+      shell: docker-compose pull
       args:
-        chdir: /home/{{ ansible_user }}/
+        chdir: "{{ ansible_env.HOME }}/"
 
-    # 4. Levantar los contenedores (Requisito Fase 2.4.c.iii)
-    - name: Levantar servicios con Docker Compose
-      docker_compose:
-        project_src: /home/{{ ansible_user }}/
-        state: present
-        recreated: always # Fuerza a recrear si la imagen cambió
+    # 4. Levantar los contenedores (Con GUION)
+    - name: Levantar servicios
+      shell: docker-compose up -d
+      args:
+        chdir: "{{ ansible_env.HOME }}/"
